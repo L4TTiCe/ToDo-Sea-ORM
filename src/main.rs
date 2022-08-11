@@ -17,13 +17,16 @@ async fn main() -> std::io::Result<()> {
 
     // Initialize logger
     pretty_env_logger::init();
+
+    let port: u16 = std::env::var("PORT").unwrap_or_else(|_| "4000".to_string()).parse::<u16>().unwrap();
+    info!("Listening on port {}", port);
     
     HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
             .service(health_check)
     })
-    .bind(("0.0.0.0", 4000))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }
