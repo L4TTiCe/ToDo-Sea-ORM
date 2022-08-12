@@ -16,3 +16,17 @@ dotenv = "^0.15"
 # logging
 log = "^0.4"
 pretty_env_logger = "0.4.0"
+
+# time
+chrono = { version = "^0.4", features = ["serde"] }
+
+# mongodb Driver
+mongodb = "2.3.0"
+futures = "0.3"
+
+# Serialize and Deserialize Data Structures
+serde = { version = "^1", features = ["derive"] }
+
+# macros from enums and strings
+strum = { version = "^0.24", features = ["derive"] }
+strum_macros = "^0.24"

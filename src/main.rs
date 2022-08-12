@@ -1,3 +1,5 @@
+mod model;
+
 use actix_web::{get, App, HttpServer, Responder, middleware};
 use dotenv::dotenv;
 
