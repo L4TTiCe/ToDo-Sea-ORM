@@ -11,13 +11,13 @@ pub enum Error {
     EnvironmentVariableNotSet(String),
 
     #[error("{0}")]
-    MongoError(#[from] MongoError),
+    Mongo(#[from] MongoError),
 
     #[error("{0}")]
-    BsonError(#[from] bson::de::Error),
+    Bson(#[from] bson::de::Error),
 
     #[error("{0}")]
-    ServerStartError(#[from] std::io::Error),
+    ServerStartFailed(#[from] std::io::Error),
 
     #[error("Resource at `{0}` not found")]
     NotFound(String),

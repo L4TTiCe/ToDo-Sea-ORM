@@ -22,7 +22,7 @@ impl TaskCollection {
     pub async fn create(&self, new_task: Task) -> Result<results::InsertOneResult, Error> {
         debug!("todo: create({:?})", new_task);
 
-        let new_doc = Task::new(new_task.task_title.clone(), new_task.task_state.clone(), new_task.task_deadline.clone());
+        let new_doc = Task::new(new_task.task_title.clone(), new_task.task_state, new_task.task_deadline);
         
         let task = self
             .collection
@@ -33,7 +33,7 @@ impl TaskCollection {
 
         match task {
             Ok(result) => Ok(result),
-            Err(err) => Err(Error::MongoError(err)),
+            Err(err) => Err(Error::Mongo(err)),
         }
             
     }
@@ -55,7 +55,7 @@ impl TaskCollection {
                     None => Err(Error::NotFound(id)),
                 }
             }
-            Err(err) => Err(Error::MongoError(err)),
+            Err(err) => Err(Error::Mongo(err)),
         }
     }
 
@@ -119,14 +119,14 @@ impl TaskCollection {
                             tasks.push(task)
                         },
                         Ok(None) => break,
-                        Err(err) => return Err(Error::MongoError(err)),
+                        Err(err) => return Err(Error::Mongo(err)),
                     }
                 }
 
                 Ok(tasks)
             }
 
-            Err(e) => Err(Error::MongoError(e)),
+            Err(e) => Err(Error::Mongo(e)),
         }
     }
 
@@ -154,14 +154,14 @@ impl TaskCollection {
                             tasks.push(task)
                         },
                         Ok(None) => break,
-                        Err(err) => return Err(Error::MongoError(err)),
+                        Err(err) => return Err(Error::Mongo(err)),
                     }
                 }
 
                 Ok(tasks)
             }
 
-            Err(e) => Err(Error::MongoError(e)),
+            Err(e) => Err(Error::Mongo(e)),
         }
     }
 
@@ -171,8 +171,8 @@ impl TaskCollection {
         let filter: Document = doc! {
             attrib.as_str() : 
             { 
-                FilterOps::GTE.to_string().as_str() : start.timestamp_millis(), 
-                FilterOps::LTE.to_string().as_str(): end.timestamp_millis() 
+                FilterOps::Gte.to_string().as_str() : start.timestamp_millis(), 
+                FilterOps::Lte.to_string().as_str(): end.timestamp_millis() 
             }
         };
         let sort_options = doc! {attrib.as_str() : sort_order};
@@ -194,14 +194,14 @@ impl TaskCollection {
                             tasks.push(task)
                         },
                         Ok(None) => break,
-                        Err(err) => return Err(Error::MongoError(err)),
+                        Err(err) => return Err(Error::Mongo(err)),
                     }
                 }
 
                 Ok(tasks)
             }
 
-            Err(e) => Err(Error::MongoError(e)),
+            Err(e) => Err(Error::Mongo(e)),
         }
     }
 
@@ -210,30 +210,29 @@ impl TaskCollection {
 
         let object_id = parse_object_id_from_str(id.as_str())?;
 
-        let new_deadline = new_task.task_deadline.clone();
+        let new_deadline = new_task.task_deadline;
         let filter = mongodb::bson::doc! {"_id": object_id};
 
-        let new_doc;
 
-        match new_deadline {
+        let new_doc = match new_deadline {
             Some(deadline) => {
-                new_doc = doc! {
+                doc! {
                     "$set":
                         {
                             "completed": new_task.task_state,
                             "deadline": deadline.timestamp_millis(),
                         },
-                };
+                }
             }
             None => {
-                new_doc = doc! {
+                doc! {
                     "$set":
                         {
                             "completed": new_task.task_state,
                         },
-                };
+                }
             }
-        }
+        };
 
         let updated_doc = self
             .collection
@@ -242,7 +241,7 @@ impl TaskCollection {
 
         match updated_doc {
             Ok(status) => Ok(status),
-            Err(err) => Err(Error::MongoError(err)),
+            Err(err) => Err(Error::Mongo(err)),
         }
     }
 
@@ -259,7 +258,7 @@ impl TaskCollection {
 
         match task {
             Ok(task) => Ok(task),
-            Err(err) => Err(Error::MongoError(err)),
+            Err(err) => Err(Error::Mongo(err)),
         }
     }
 }

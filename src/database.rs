@@ -42,11 +42,11 @@ fn construct_db_uri() -> Result<String, Error> {
 async fn ping_db(client: Client) {
     let timeout_duration = std::time::Duration::from_secs(5);
 
-    if let Err(_) = timeout(
+    if (timeout(
         timeout_duration, 
         client.database("admin")
             .run_command(doc! {"ping": 1}, None)
-        ).await {
+        ).await).is_err() {
             warn!("Failed to recieve response fron Database wihin {} s", timeout_duration.as_secs());
     } else {
         info!("Sucessfuly connected to MongoDB.");
@@ -68,7 +68,7 @@ impl MongoDB {
         let db: Database = client.database(database_name.as_str());
 
         info!("Linking to Task Collection...");
-        let task_collection = TaskCollection::init(db.clone(), String::from("tasks"));
+        let task_collection = TaskCollection::init(db, String::from("tasks"));
         
         Ok(
             MongoDB {

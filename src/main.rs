@@ -50,6 +50,6 @@ async fn main() -> Result<(), Error> {
     .await
     .map_err(|err| {
         error!("{}", err);
-        Error::ServerStartError(err)
+        Error::ServerStartFailed(err)
     })
 }

@@ -24,7 +24,7 @@ pub fn attach_service(app: &mut actix_web::web::ServiceConfig) {
 
 #[post("/todo")]
 pub async fn create_task(db: Data<MongoDB>, new_task: Json<Task>) -> HttpResponse {
-    let data: Task = Task::new(new_task.task_title.clone(), new_task.task_state.clone(), new_task.task_deadline.clone());
+    let data: Task = Task::new(new_task.task_title.clone(), new_task.task_state, new_task.task_deadline);
 
     let status = db.task_collection.create(data).await;
 
@@ -83,7 +83,7 @@ pub struct GetAllQueryParams {
 fn send_data(data: Result<Vec<Task>, Error>) -> HttpResponse {
     match data {
         Ok(tasks) => {
-            let public_tasks: Vec<PublicTask> = tasks.into_iter().map(|task| PublicTask::from(task)).collect();
+            let public_tasks: Vec<PublicTask> = tasks.into_iter().map(PublicTask::from).collect();
             HttpResponse::Ok().json(public_tasks)
         },
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
@@ -141,7 +141,7 @@ pub async fn get_all_tasks(db: Data<MongoDB>, params: Query<GetAllQueryParams>) 
                             if params.start.is_some() || params.end.is_some() {
                                 return HttpResponse::BadRequest().body("Cannot use 'before' with 'start' or 'end'");
                             }
-                            let data = db.task_collection.find_with_params(attribute.to_string(), lib::mongodb::FilterOps::LTE, date.clone(), sort_order).await;
+                            let data = db.task_collection.find_with_params(attribute.to_string(), lib::mongodb::FilterOps::Lte, date, sort_order).await;
                             return send_data(data)
                         }
                         None => {}
@@ -155,7 +155,7 @@ pub async fn get_all_tasks(db: Data<MongoDB>, params: Query<GetAllQueryParams>) 
                             if params.start.is_some() || params.end.is_some() {
                                 return HttpResponse::BadRequest().body("Cannot use 'after' with 'start' or 'end'");
                             }
-                            let data = db.task_collection.find_with_params(attribute.to_string(), lib::mongodb::FilterOps::GTE, date.clone(), sort_order).await;
+                            let data = db.task_collection.find_with_params(attribute.to_string(), lib::mongodb::FilterOps::Gte, date, sort_order).await;
                             return send_data(data)
                         }
                         None => {}
@@ -218,7 +218,7 @@ pub async fn update_task(db: Data<MongoDB>, path: Path<TaskIdentifier>, new_task
     match data {
         Err(err) => HttpResponse::NotFound().body(err.to_string()),
         Ok(task) => {
-            let mut new_data = Task::new(task.task_title.clone(), task.task_state.clone(), task.task_deadline.clone());
+            let mut new_data = Task::new(task.task_title.clone(), task.task_state, task.task_deadline);
             
             match new_task.task_title.clone() {
                 Some(title) => new_data.task_title = title,

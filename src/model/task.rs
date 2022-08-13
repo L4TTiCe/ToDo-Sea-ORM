@@ -100,9 +100,9 @@ impl From<Task> for PublicTask {
         Self {
             task_id: task.task_id.unwrap(),
             task_title: task.task_title.clone(),
-            task_state: task.task_state.clone(),
-            task_created_at: task.task_created_at.clone(),
-            task_deadline: task.task_deadline.clone(),
+            task_state: task.task_state,
+            task_created_at: task.task_created_at,
+            task_deadline: task.task_deadline,
         }
     }
 }
