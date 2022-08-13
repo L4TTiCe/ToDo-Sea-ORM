@@ -7,7 +7,7 @@ mod model;
 
 use crate::database::MongoDB;
 
-use actix_web::{get, App, HttpServer, Responder, middleware};
+use actix_web::{get, middleware, App, HttpServer, Responder};
 use dotenv::dotenv;
 use errors::Error;
 
@@ -31,13 +31,16 @@ async fn main() -> Result<(), Error> {
     info!("VERBOSE REST responses SET");
     std::env::set_var("VERBOSE_REST", "1");
 
-    let port: u16 = std::env::var("PORT").unwrap_or_else(|_| "4000".to_string()).parse::<u16>().unwrap();
+    let port: u16 = std::env::var("PORT")
+        .unwrap_or_else(|_| "4000".to_string())
+        .parse::<u16>()
+        .unwrap();
     info!("Listening on port {}", port);
 
     let db = MongoDB::init().await?;
 
     let db_data = actix_web::web::Data::new(db);
-    
+
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())

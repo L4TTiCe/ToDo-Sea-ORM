@@ -1,8 +1,8 @@
+use crate::dao::task::TaskCollection;
 use crate::errors::Error;
 use crate::lib::env::get_env_var;
-use crate::dao::task::TaskCollection;
 
-use mongodb::{Client, options::ClientOptions, bson::doc, Database};
+use mongodb::{bson::doc, options::ClientOptions, Client, Database};
 use tokio::time::timeout;
 
 pub struct MongoDB {
@@ -43,11 +43,16 @@ async fn ping_db(client: Client) {
     let timeout_duration = std::time::Duration::from_secs(5);
 
     if (timeout(
-        timeout_duration, 
-        client.database("admin")
-            .run_command(doc! {"ping": 1}, None)
-        ).await).is_err() {
-            warn!("Failed to recieve response fron Database wihin {} s", timeout_duration.as_secs());
+        timeout_duration,
+        client.database("admin").run_command(doc! {"ping": 1}, None),
+    )
+    .await)
+        .is_err()
+    {
+        warn!(
+            "Failed to recieve response fron Database wihin {} s",
+            timeout_duration.as_secs()
+        );
     } else {
         info!("Sucessfuly connected to MongoDB.");
     }
@@ -69,11 +74,7 @@ impl MongoDB {
 
         info!("Linking to Task Collection...");
         let task_collection = TaskCollection::init(db, String::from("tasks"));
-        
-        Ok(
-            MongoDB {
-                task_collection,
-            }
-        )
+
+        Ok(MongoDB { task_collection })
     }
 }

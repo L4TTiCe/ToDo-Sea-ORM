@@ -1,8 +1,14 @@
+use crate::{
+    database::MongoDB,
+    model::task::{InsertOneResponse, PublicTask},
+};
 use actix_web::HttpResponse;
 use mongodb::bson::oid::ObjectId;
-use crate::{model::task::{InsertOneResponse, PublicTask}, database::MongoDB};
 
-pub async fn insert_one_response_handler(db: actix_web::web::Data<MongoDB>, insert_one_reponse: mongodb::results::InsertOneResult) -> HttpResponse {
+pub async fn insert_one_response_handler(
+    db: actix_web::web::Data<MongoDB>,
+    insert_one_reponse: mongodb::results::InsertOneResult,
+) -> HttpResponse {
     let verbose = std::env::var("VERBOSE_REST").is_ok();
 
     if verbose {

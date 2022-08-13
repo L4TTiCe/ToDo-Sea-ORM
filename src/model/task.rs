@@ -1,10 +1,10 @@
 use crate::lib::time::get_current_time;
 
+use chrono::serde::{ts_milliseconds, ts_milliseconds_option};
+use chrono::{self, DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
 use mongodb::bson::serde_helpers::serialize_object_id_as_hex_string;
-use serde::{Serialize, Deserialize};
-use chrono::{self, DateTime, Utc};
-use chrono::serde::{ts_milliseconds, ts_milliseconds_option};
+use serde::{Deserialize, Serialize};
 
 fn default_task_completed_state() -> bool {
     false
@@ -25,10 +25,19 @@ pub struct Task {
     #[serde(rename = "completed", default = "default_task_completed_state")]
     pub task_state: bool,
 
-    #[serde(rename = "created_at", default = "get_current_time", with = "ts_milliseconds")]
+    #[serde(
+        rename = "created_at",
+        default = "get_current_time",
+        with = "ts_milliseconds"
+    )]
     pub task_created_at: DateTime<Utc>,
 
-    #[serde(rename = "deadline", skip_serializing_if = "Option::is_none", with = "ts_milliseconds_option", default = "default_dealine")]
+    #[serde(
+        rename = "deadline",
+        skip_serializing_if = "Option::is_none",
+        with = "ts_milliseconds_option",
+        default = "default_dealine"
+    )]
     pub task_deadline: Option<DateTime<Utc>>,
 }
 
@@ -40,7 +49,12 @@ pub struct OptionalTask {
     #[serde(rename = "completed", skip_serializing_if = "Option::is_none")]
     pub task_state: Option<bool>,
 
-    #[serde(rename = "deadline", skip_serializing_if = "Option::is_none", with = "ts_milliseconds_option", default = "default_dealine")]
+    #[serde(
+        rename = "deadline",
+        skip_serializing_if = "Option::is_none",
+        with = "ts_milliseconds_option",
+        default = "default_dealine"
+    )]
     pub task_deadline: Option<DateTime<Utc>>,
 }
 
@@ -71,15 +85,18 @@ impl From<mongodb::results::InsertOneResult> for InsertOneResponse {
             None => {
                 error!("InsertOneResult did not return an ObjectId");
                 panic!("InsertOneResult did not return an ObjectId");
-            },
+            }
         }
-            
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PublicTask {
-    #[serde(rename = "_id", alias = "_id", serialize_with = "serialize_object_id_as_hex_string")]
+    #[serde(
+        rename = "_id",
+        alias = "_id",
+        serialize_with = "serialize_object_id_as_hex_string"
+    )]
     pub task_id: ObjectId,
 
     #[serde(rename = "title")]
@@ -88,10 +105,18 @@ pub struct PublicTask {
     #[serde(rename = "completed", default = "default_task_completed_state")]
     pub task_state: bool,
 
-    #[serde(rename = "created_at", default = "get_current_time", with = "ts_milliseconds")]
+    #[serde(
+        rename = "created_at",
+        default = "get_current_time",
+        with = "ts_milliseconds"
+    )]
     pub task_created_at: DateTime<Utc>,
 
-    #[serde(rename = "deadline", skip_serializing_if = "Option::is_none", with = "ts_milliseconds_option")]
+    #[serde(
+        rename = "deadline",
+        skip_serializing_if = "Option::is_none",
+        with = "ts_milliseconds_option"
+    )]
     pub task_deadline: Option<DateTime<Utc>>,
 }
 
