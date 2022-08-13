@@ -17,13 +17,25 @@ fn construct_db_uri() -> Result<String, Error> {
     uri.push_str("://");
     uri.push_str(get_env_var(String::from("DB_USER"))?.as_str());
     uri.push(':');
-    uri.push_str(get_env_var(String::from("DB_PASSWORD"))?.as_str());
-    uri.push('@');
-    uri.push_str(get_env_var(String::from("DB_HOST"))?.as_str());
-    uri.push(':');
-    uri.push_str(get_env_var(String::from("DB_PORT"))?.as_str());
 
-    info!("Sucessfully constructed DB URI");
+    let mut redacted_uri = uri.clone();
+    redacted_uri.push_str("******");
+
+    uri.push_str(get_env_var(String::from("DB_PASSWORD"))?.as_str());
+
+    uri.push('@');
+    redacted_uri.push('@');
+
+    uri.push_str(get_env_var(String::from("DB_HOST"))?.as_str());
+    redacted_uri.push_str(get_env_var(String::from("DB_HOST"))?.as_str());
+
+    uri.push(':');
+    redacted_uri.push(':');
+
+    uri.push_str(get_env_var(String::from("DB_PORT"))?.as_str());
+    redacted_uri.push_str(get_env_var(String::from("DB_PORT"))?.as_str());
+
+    info!("Constructed DB URI: {}", redacted_uri);
     Ok(uri)
 }
 
