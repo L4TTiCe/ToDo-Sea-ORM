@@ -28,6 +28,9 @@ async fn main() -> Result<(), Error> {
     // Initialize logger
     pretty_env_logger::init();
 
+    info!("VERBOSE REST responses SET");
+    std::env::set_var("VERBOSE_REST", "1");
+
     let port: u16 = std::env::var("PORT").unwrap_or_else(|_| "4000".to_string()).parse::<u16>().unwrap();
     info!("Listening on port {}", port);
 
@@ -40,12 +43,13 @@ async fn main() -> Result<(), Error> {
             .wrap(middleware::Logger::default())
             .app_data(db_data.clone())
             .service(health_check)
+            .configure(api::task::attach_service)
     })
     .bind(("0.0.0.0", port))?
     .run()
     .await
     .map_err(|err| {
         error!("{}", err);
-        Error::ServerStart(err)
+        Error::ServerStartError(err)
     })
 }

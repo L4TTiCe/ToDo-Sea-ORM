@@ -5,14 +5,17 @@ use mongodb::error::Error as MongoError;
 #[error("...")]
 pub enum Error {
     #[error("{0}")]
-    ParseObjectID(#[from] bson::oid::Error),
+    ParseObjectIDFailed(#[from] bson::oid::Error),
 
     #[error("ENV VARIABLE for `{0}` is not set")]
     EnvironmentVariableNotSet(String),
 
     #[error("{0}")]
-    Mongo(#[from] MongoError),
+    MongoError(#[from] MongoError),
 
     #[error("{0}")]
-    ServerStart(#[from] std::io::Error),
+    ServerStartError(#[from] std::io::Error),
+
+    #[error("Resource at `{0}` not found")]
+    NotFound(String),
 }
