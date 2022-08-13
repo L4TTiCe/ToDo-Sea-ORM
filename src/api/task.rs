@@ -1,3 +1,4 @@
+use crate::errors::Error;
 use crate::{database::MongoDB, model::task::PublicTask};
 use crate::model::task::{Task, OptionalTask};
 use crate::lib;
@@ -67,6 +68,9 @@ pub struct GetAllQueryParams {
     sort: Option<String>,
 
     #[serde(with = "ts_milliseconds_option", default = "get_default_query_param_option")]
+    before: Option<DateTime<Utc>>,
+
+    #[serde(with = "ts_milliseconds_option", default = "get_default_query_param_option")]
     after: Option<DateTime<Utc>>,
 
     #[serde(with = "ts_milliseconds_option", default = "get_default_query_param_option")]
@@ -76,27 +80,20 @@ pub struct GetAllQueryParams {
     end: Option<DateTime<Utc>>,
 }
 
+fn send_data(data: Result<Vec<Task>, Error>) -> HttpResponse {
+    match data {
+        Ok(tasks) => {
+            let public_tasks: Vec<PublicTask> = tasks.into_iter().map(|task| PublicTask::from(task)).collect();
+            HttpResponse::Ok().json(public_tasks)
+        },
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
+}
+
 #[get("/todo")]
 pub async fn get_all_tasks(db: Data<MongoDB>, params: Query<GetAllQueryParams>) -> HttpResponse {
     let sort_attrib: String;
-    let sort_order: i32; 
-
-    match &params.attribute {
-        Some(attribute) => {
-            match attribute.as_str() {
-                "title" | "created_at" | "deadline" => {
-                    sort_attrib = attribute.to_string();
-                }
-                _ => {
-                    info!("Invalid attribute");
-                    return HttpResponse::BadRequest().body("Invalid attribute. Valid attributes are: title, created_at, deadline");
-                }
-            }
-        },
-        None => {
-            sort_attrib = "created_at".to_string();
-        }
-    }
+    let sort_order: i32; // 1 for ascending, -1 for descending
 
     match &params.sort {
         Some(sort) => {
@@ -117,15 +114,87 @@ pub async fn get_all_tasks(db: Data<MongoDB>, params: Query<GetAllQueryParams>) 
         }
     }
 
-    let data = db.task_collection.find_all(sort_attrib, sort_order).await;
+    match &params.attribute {
+        Some(attribute) => {
+            match attribute.as_str() {
+                "title" | "created_at" | "deadline" => {
+                    sort_attrib = attribute.to_string();
+                }
+                _ => {
+                    info!("Invalid attribute: {}", attribute);
+                    return HttpResponse::BadRequest().body(format!("Invalid attribute: {}. Valid attributes are: title, created_at, deadline", attribute));
+                }
+            }
 
-    match data {
-        Ok(tasks) => {
-            let public_tasks: Vec<PublicTask> = tasks.into_iter().map(|task| PublicTask::from(task)).collect();
-            HttpResponse::Ok().json(public_tasks)
+            match attribute.as_str() {
+                "title" => {
+                    if params.before.is_some() || params.after.is_some() || params.start.is_some() || params.end.is_some() {
+                        return HttpResponse::BadRequest().body("Cannot use before, after, start, or end with title");
+                    }
+                },
+                _ => {
+                    match params.before {
+                        Some(date) => {
+                            if params.after.is_some() {
+                                return HttpResponse::BadRequest().body("Cannot use 'before' and 'after'");
+                            }
+                            if params.start.is_some() || params.end.is_some() {
+                                return HttpResponse::BadRequest().body("Cannot use 'before' with 'start' or 'end'");
+                            }
+                            let data = db.task_collection.find_with_params(attribute.to_string(), lib::mongodb::FilterOps::LTE, date.clone(), sort_order).await;
+                            return send_data(data)
+                        }
+                        None => {}
+                    }
+                
+                    match params.after {
+                        Some(date) => {
+                            if params.before.is_some() {
+                                return HttpResponse::BadRequest().body("Cannot use before and after");
+                            }
+                            if params.start.is_some() || params.end.is_some() {
+                                return HttpResponse::BadRequest().body("Cannot use 'after' with 'start' or 'end'");
+                            }
+                            let data = db.task_collection.find_with_params(attribute.to_string(), lib::mongodb::FilterOps::GTE, date.clone(), sort_order).await;
+                            return send_data(data)
+                        }
+                        None => {}
+                    }
+
+                    match params.start {
+                        Some(start_date) => {
+
+                            match params.end {
+                                Some(end_date) => {
+                                    if start_date > end_date {
+                                        return HttpResponse::BadRequest().body("'start' must be before 'end'");
+                                    }
+                                    let data = db.task_collection.find_between(attribute.to_string(), start_date, end_date, sort_order).await;
+                                    return send_data(data)
+                                }
+                                None => {
+                                    return HttpResponse::BadRequest().body("No 'end' specified. 'start' requires 'end'. Try using 'after' instead");
+                                }
+                            }
+
+                        }
+                        None => {}
+                    }
+                }
+            }
         },
-        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+        None => {
+            if params.before.is_some() || params.after.is_some() {
+                info!("'attrib' is required when using before or after");
+                return HttpResponse::BadRequest().body("'attrib' is required when using before or after");
+            } else {
+                sort_attrib = "created_at".to_string();
+            }
+        }
     }
+
+    let data = db.task_collection.find_all(sort_attrib, sort_order).await;
+    send_data(data)
 }
 
 #[put("/todo/{task_id}")]

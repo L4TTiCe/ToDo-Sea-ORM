@@ -1,9 +1,10 @@
 
-use crate::model::task::Task;
+use crate::{model::task::Task, lib::mongodb::FilterOps};
 use crate::errors::Error;
 use crate::lib::object_id::parse_object_id_from_str;
 
-use mongodb::{Collection, Database, results, bson::doc, options::FindOptions};
+use chrono::{DateTime, Utc};
+use mongodb::{Collection, Database, results, bson::{doc, Document}, options::FindOptions};
 // This trait is required to use `try_next()` on the cursor
 use futures::stream::TryStreamExt;
 
@@ -100,7 +101,6 @@ impl TaskCollection {
         // }
 
         let sort_options = doc! {sort_attrib.as_str() : sort_order};
-
         let find_options = FindOptions::builder().sort(sort_options).build();
 
         let cursor = self
@@ -108,6 +108,81 @@ impl TaskCollection {
             .find(None, find_options)
             .await;
 
+        match cursor  {
+            Ok(mut cursor) => {
+                let mut tasks = Vec::new();
+                loop {
+                    let result = cursor.try_next().await;
+
+                    match result {
+                        Ok(Some(task)) => {
+                            tasks.push(task)
+                        },
+                        Ok(None) => break,
+                        Err(err) => return Err(Error::MongoError(err)),
+                    }
+                }
+
+                Ok(tasks)
+            }
+
+            Err(e) => Err(Error::MongoError(e)),
+        }
+    }
+
+    pub async fn find_with_params(&self, attrib: String, verb: FilterOps, date: DateTime<Utc>, sort_order: i32) -> Result<Vec<Task>, Error> {
+        debug!("to_do: find_with_params(attrib: {}, verb: {}, date: {}, sort_order: {})", attrib, verb, date, sort_order);
+
+        let filter: Document = doc! {attrib.as_str() : { verb.to_string().as_str(): date.timestamp_millis() }};
+
+        let sort_options = doc! {attrib.as_str() : sort_order};
+        let find_options = FindOptions::builder().sort(sort_options).build();
+
+        let cursor = self
+            .collection
+            .find(filter, find_options)
+            .await;
+
+        match cursor  {
+            Ok(mut cursor) => {
+                let mut tasks = Vec::new();
+                loop {
+                    let result = cursor.try_next().await;
+
+                    match result {
+                        Ok(Some(task)) => {
+                            tasks.push(task)
+                        },
+                        Ok(None) => break,
+                        Err(err) => return Err(Error::MongoError(err)),
+                    }
+                }
+
+                Ok(tasks)
+            }
+
+            Err(e) => Err(Error::MongoError(e)),
+        }
+    }
+
+    pub async fn find_between(&self, attrib: String, start: DateTime<Utc>, end: DateTime<Utc>, sort_order: i32) -> Result<Vec<Task>, Error> {
+        debug!("to_do: find_between(attrib: {}, start: {}, end: {}, sort_order: {})", attrib, start, end, sort_order);
+
+        let filter: Document = doc! {
+            attrib.as_str() : 
+            { 
+                FilterOps::GTE.to_string().as_str() : start.timestamp_millis(), 
+                FilterOps::LTE.to_string().as_str(): end.timestamp_millis() 
+            }
+        };
+        let sort_options = doc! {attrib.as_str() : sort_order};
+        let find_options = FindOptions::builder().sort(sort_options).build();
+
+        let cursor = self
+            .collection
+            .find(filter, find_options)
+            .await;
+        
         match cursor  {
             Ok(mut cursor) => {
                 let mut tasks = Vec::new();
