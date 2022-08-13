@@ -180,6 +180,13 @@ pub async fn get_all_tasks(db: Data<MongoDB>, params: Query<GetAllQueryParams>) 
                         }
                         None => {}
                     }
+
+                    match params.end {
+                        Some(_) => {
+                            return HttpResponse::BadRequest().body("No 'start' specified. 'end' requires 'start'. Try using 'before' instead");
+                        },
+                        None => {}
+                    }
                 }
             }
         },
