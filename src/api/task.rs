@@ -18,7 +18,8 @@ pub fn attach_service(app: &mut actix_web::web::ServiceConfig) {
         .service(get_task)
         .service(get_all_tasks)
         .service(update_task)
-        .service(delete_task);
+        .service(delete_task)
+        .service(delete_all_tasks);
 }
 
 #[post("/todo")]
@@ -311,6 +312,16 @@ pub async fn delete_task(db: Data<MongoDB>, path: Path<TaskIdentifier>) -> HttpR
 
     match task {
         Ok(task) => HttpResponse::Ok().json(task),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
+}
+
+#[delete("/todo")]
+pub async fn delete_all_tasks(db: Data<MongoDB>) -> HttpResponse {
+    let result = db.task_collection.delete_all().await;
+
+    match result {
+        Ok(status) => HttpResponse::Ok().json(status),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
     }
 }

@@ -263,4 +263,16 @@ impl TaskCollection {
             Err(err) => Err(Error::Mongo(err)),
         }
     }
+
+    pub async fn delete_all(&self) -> Result<results::DeleteResult, Error> {
+        debug!("to_do: delete_all()");
+
+        let filter = mongodb::bson::doc! {};
+        let task = self.collection.delete_many(filter, None).await;
+
+        match task {
+            Ok(task) => Ok(task),
+            Err(err) => Err(Error::Mongo(err)),
+        }
+    }
 }
