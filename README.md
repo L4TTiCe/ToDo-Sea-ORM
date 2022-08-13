@@ -13,6 +13,8 @@ basic ToDo Application.
 
 It uses MongoDB for its Database, and uses the official MongoDB drivers to access the same.
 
+For more information about the TASK, refer to [TASK.md](TASK.md).
+
 ### Running the Application
 
 Once you've cloned the repository you can start the service with
