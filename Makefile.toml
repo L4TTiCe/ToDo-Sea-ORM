@@ -1,0 +1,9 @@
+[tasks.docker]
+script = [
+ "docker-compose up --build --remove-orphans --force-recreate"
+]
+
+[tasks.mongo-docker]
+script = [
+ "docker-compose --file docker-compose-mongo.yml up"
+]
