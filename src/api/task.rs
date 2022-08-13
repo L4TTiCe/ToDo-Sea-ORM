@@ -2,12 +2,15 @@ use crate::{database::MongoDB, model::task::PublicTask};
 use crate::model::task::{Task, OptionalTask};
 use crate::lib;
 
+use actix_web::web::Query;
 use actix_web::{
     delete, get, post, put,
     web::{Data, Json, Path},
     HttpResponse,
 };
-use serde::{Deserialize, Serialize};
+use chrono::serde::ts_milliseconds_option;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize};
 
 pub fn attach_service(app: &mut actix_web::web::ServiceConfig) {
     app
@@ -20,8 +23,6 @@ pub fn attach_service(app: &mut actix_web::web::ServiceConfig) {
 
 #[post("/todo")]
 pub async fn create_task(db: Data<MongoDB>, new_task: Json<Task>) -> HttpResponse {
-    info!("POST /todo {:?}", new_task);
-
     let data: Task = Task::new(new_task.task_title.clone(), new_task.task_state.clone(), new_task.task_deadline.clone());
 
     let status = db.task_collection.create(data).await;
@@ -32,15 +33,13 @@ pub async fn create_task(db: Data<MongoDB>, new_task: Json<Task>) -> HttpRespons
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 pub struct TaskIdentifier {
     task_id: String,
 }
 
 #[get("/todo/{task_id}")]
 pub async fn get_task(db: Data<MongoDB>, path: Path<TaskIdentifier>) -> HttpResponse {
-    info!("GET /todo/{}", path.task_id);
-    
     let id = path.into_inner().task_id;
 
     if id.is_empty() {
@@ -56,10 +55,69 @@ pub async fn get_task(db: Data<MongoDB>, path: Path<TaskIdentifier>) -> HttpResp
     }
 }
 
+fn get_default_query_param_option<T>() -> Option<T> {
+    Option::None
+}
+
+#[derive(Deserialize)]
+pub struct GetAllQueryParams {
+    #[serde(rename = "attrib")]
+    attribute: Option<String>,
+
+    sort: Option<String>,
+
+    #[serde(with = "ts_milliseconds_option", default = "get_default_query_param_option")]
+    after: Option<DateTime<Utc>>,
+
+    #[serde(with = "ts_milliseconds_option", default = "get_default_query_param_option")]
+    start: Option<DateTime<Utc>>,
+
+    #[serde(with = "ts_milliseconds_option", default = "get_default_query_param_option")]
+    end: Option<DateTime<Utc>>,
+}
+
 #[get("/todo")]
-pub async fn get_all_tasks(db: Data<MongoDB>) -> HttpResponse {
-    info!("GET /todo");
-    let data = db.task_collection.find_all().await;
+pub async fn get_all_tasks(db: Data<MongoDB>, params: Query<GetAllQueryParams>) -> HttpResponse {
+    let sort_attrib: String;
+    let sort_order: i32; 
+
+    match &params.attribute {
+        Some(attribute) => {
+            match attribute.as_str() {
+                "title" | "created_at" | "deadline" => {
+                    sort_attrib = attribute.to_string();
+                }
+                _ => {
+                    info!("Invalid attribute");
+                    return HttpResponse::BadRequest().body("Invalid attribute. Valid attributes are: title, created_at, deadline");
+                }
+            }
+        },
+        None => {
+            sort_attrib = "created_at".to_string();
+        }
+    }
+
+    match &params.sort {
+        Some(sort) => {
+            match sort.to_lowercase().as_ref() {
+                "asc" | "1" => {
+                    sort_order = 1;
+                },
+                "desc" | "-1" => {
+                    sort_order = -1;
+                },
+                _ => {
+                    return HttpResponse::BadRequest().body("Invalid sort order. Must be either 1 or -1")
+                }
+            }
+        }
+        None => {
+            sort_order = -1;
+        }
+    }
+
+    let data = db.task_collection.find_all(sort_attrib, sort_order).await;
 
     match data {
         Ok(tasks) => {
@@ -72,8 +130,6 @@ pub async fn get_all_tasks(db: Data<MongoDB>) -> HttpResponse {
 
 #[put("/todo/{task_id}")]
 pub async fn update_task(db: Data<MongoDB>, path: Path<TaskIdentifier>, new_task: Json<OptionalTask>) -> HttpResponse {
-    info!("PUT /todo/{}", path.task_id);
-    
     let id = path.into_inner().task_id;
 
     if id.is_empty() {
@@ -112,9 +168,7 @@ pub async fn update_task(db: Data<MongoDB>, path: Path<TaskIdentifier>, new_task
 }
 
 #[delete("/todo/{task_id}")]
-pub async fn delete_task(db: Data<MongoDB>, path: Path<TaskIdentifier>) -> HttpResponse {
-    info!("DEL /todo/{}", path.task_id);
-    
+pub async fn delete_task(db: Data<MongoDB>, path: Path<TaskIdentifier>) -> HttpResponse {  
     let id = path.into_inner().task_id;
 
     if id.is_empty() {

@@ -3,7 +3,7 @@ use crate::model::task::Task;
 use crate::errors::Error;
 use crate::lib::object_id::parse_object_id_from_str;
 
-use mongodb::{Collection, Database, results, bson::doc};
+use mongodb::{Collection, Database, results, bson::doc, options::FindOptions};
 // This trait is required to use `try_next()` on the cursor
 use futures::stream::TryStreamExt;
 
@@ -19,6 +19,8 @@ impl TaskCollection {
     }
 
     pub async fn create(&self, new_task: Task) -> Result<results::InsertOneResult, Error> {
+        debug!("todo: create({:?})", new_task);
+
         let new_doc = Task::new(new_task.task_title.clone(), new_task.task_state.clone(), new_task.task_deadline.clone());
         
         let task = self
@@ -36,6 +38,7 @@ impl TaskCollection {
     }
 
     pub async fn find_id(&self, id: String) -> Result<Task, Error> {
+        debug!("to_do: find_id({})", id);
         let object_id = parse_object_id_from_str(id.as_str())?;
         
         let filter = mongodb::bson::doc! {"_id": object_id};
@@ -55,10 +58,54 @@ impl TaskCollection {
         }
     }
 
-    pub async fn find_all(&self) -> Result<Vec<Task>, Error> {
+    pub async fn find_all(&self, sort_attrib: String, sort_order: i32) -> Result<Vec<Task>, Error> {
+        debug!("to_do: find_all(sort_attrib: {}, sort_order: {})", sort_attrib, sort_order);
+
+        // Using Aggregate
+        // Reference: https://www.mongodb.com/developer/languages/rust/rust-quickstart-aggregation/
+
+        // let sort_stage = doc! {
+        //     "$sort": {
+        //         sort_attrib.as_str() : sort_order
+        //     }
+        // };
+
+        // let pipeline = vec![sort_stage];
+
+        // let cursor = self
+        //     .collection
+        //     .aggregate(pipeline, None)
+        //     .await;
+
+        // match cursor  {
+        //     Ok(mut cursor) => {
+        //         let mut tasks = Vec::new();
+        //         loop {
+        //             let result = cursor.try_next().await;
+
+        //             match result {
+        //                 Ok(Some(doc)) => {
+        //                     let task: Task = mongodb::bson::from_document(doc)?;
+        //                     tasks.push(task)
+        //                 },
+        //                 Ok(None) => break,
+        //                 Err(err) => return Err(Error::MongoError(err)),
+        //             }
+        //         }
+
+        //         Ok(tasks)
+        //     }
+
+        //     Err(e) => Err(Error::MongoError(e)),
+        // }
+
+        let sort_options = doc! {sort_attrib.as_str() : sort_order};
+
+        let find_options = FindOptions::builder().sort(sort_options).build();
+
         let cursor = self
             .collection
-            .find(None, None)
+            .find(None, find_options)
             .await;
 
         match cursor  {
@@ -68,7 +115,9 @@ impl TaskCollection {
                     let result = cursor.try_next().await;
 
                     match result {
-                        Ok(Some(task)) => tasks.push(task),
+                        Ok(Some(task)) => {
+                            tasks.push(task)
+                        },
                         Ok(None) => break,
                         Err(err) => return Err(Error::MongoError(err)),
                     }
@@ -82,6 +131,8 @@ impl TaskCollection {
     }
 
     pub async fn update_task(&self, id: String, new_task: Task) -> Result<results::UpdateResult, Error> {
+        debug!("to_do: update_task({}, {:?})", id, new_task);
+
         let object_id = parse_object_id_from_str(id.as_str())?;
 
         let new_deadline = new_task.task_deadline.clone();
@@ -121,6 +172,8 @@ impl TaskCollection {
     }
 
     pub async fn delete_id(&self, id: String) -> Result<results::DeleteResult, Error> {
+        debug!("to_do: delete_id({})", id);
+
         let object_id = parse_object_id_from_str(id.as_str())?;
 
         let filter = mongodb::bson::doc! {"_id": object_id};

@@ -14,6 +14,9 @@ pub enum Error {
     MongoError(#[from] MongoError),
 
     #[error("{0}")]
+    BsonError(#[from] bson::de::Error),
+
+    #[error("{0}")]
     ServerStartError(#[from] std::io::Error),
 
     #[error("Resource at `{0}` not found")]
