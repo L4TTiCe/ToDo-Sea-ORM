@@ -1,0 +1,11 @@
+
+# version control
+.git
+.gitignore
+
+# build
+target
+
+# docker
+Dockerfile
+.dockerignore
