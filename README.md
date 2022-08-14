@@ -15,6 +15,8 @@ It uses MongoDB for its Database, and uses the official MongoDB drivers to acces
 
 For more information about the TASK, refer to [TASK.md](TASK.md).
 
+Compatible with the SvelteKit Frontend avaialble at [github.com/L4TTiCe/ToDo-SvelteKit](https://github.com/L4TTiCe/ToDo-SvelteKit)
+
 ### Running the Application
 
 Once you've cloned the repository you can start the service with
