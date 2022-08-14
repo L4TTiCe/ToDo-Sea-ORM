@@ -26,7 +26,7 @@ pub struct Task {
     pub task_state: bool,
 
     #[serde(
-        rename = "created_at",
+        rename = "createdAt",
         default = "get_current_time",
         with = "ts_milliseconds"
     )]
@@ -106,7 +106,7 @@ pub struct PublicTask {
     pub task_state: bool,
 
     #[serde(
-        rename = "created_at",
+        rename = "createdAt",
         default = "get_current_time",
         with = "ts_milliseconds"
     )]

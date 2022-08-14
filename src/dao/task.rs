@@ -227,6 +227,7 @@ impl TaskCollection {
                 doc! {
                     "$set":
                         {
+                            "title": new_task.task_title,
                             "completed": new_task.task_state,
                             "deadline": deadline.timestamp_millis(),
                         },
@@ -236,6 +237,7 @@ impl TaskCollection {
                 doc! {
                     "$set":
                         {
+                            "title": new_task.task_title,
                             "completed": new_task.task_state,
                         },
                 }
