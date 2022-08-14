@@ -7,6 +7,7 @@ mod model;
 
 use crate::database::MongoDB;
 
+use actix_cors::Cors;
 use actix_web::{get, middleware, App, HttpServer, Responder};
 use dotenv::dotenv;
 use errors::Error;
@@ -16,7 +17,6 @@ extern crate log;
 
 #[get("/up")]
 async fn health_check() -> impl Responder {
-    info!("GET /up Health Check");
     "Server is Up!".to_string()
 }
 
@@ -44,6 +44,7 @@ async fn main() -> Result<(), Error> {
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
+            .wrap(Cors::permissive())
             .app_data(db_data.clone())
             .service(health_check)
             .configure(api::task::attach_service)
