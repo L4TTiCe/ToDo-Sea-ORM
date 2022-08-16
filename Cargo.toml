@@ -17,7 +17,7 @@ actix-cors = "^0.6"
 dotenv = "^0.15"
 
 # logging
-log = "^0.4"
+log = { version = "^0.4", features = ["release_max_level_off"] }
 pretty_env_logger = "0.4.0"
 
 # error handling

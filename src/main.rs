@@ -20,7 +20,7 @@ async fn health_check() -> impl Responder {
     "Server is Up!".to_string()
 }
 
-#[tokio::main]
+#[actix_web::main]
 async fn main() -> Result<(), Error> {
     // Load environment variables from .env file
     dotenv().ok();
