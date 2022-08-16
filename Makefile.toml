@@ -3,7 +3,7 @@ script = [
  "docker-compose up --build --remove-orphans --force-recreate"
 ]
 
-[tasks.mongo-docker]
+[tasks.mongo]
 script = [
  "docker-compose --file docker-compose-mongo.yml up"
 ]
