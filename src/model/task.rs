@@ -1,11 +1,11 @@
 use crate::lib::time::get_current_time;
-use entity::task::Model as Task;
 use entity::task;
+use entity::task::Model as Task;
 
 use chrono::serde::{ts_milliseconds, ts_milliseconds_option};
 use chrono::{self, DateTime, Utc};
-use uuid::Uuid;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -27,10 +27,7 @@ pub struct OptionalTask {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PublicTask {
-    #[serde(
-        rename = "_id",
-        alias = "_id",
-    )]
+    #[serde(rename = "_id", alias = "_id")]
     pub task_id: Option<Uuid>,
 
     #[serde(rename = "title")]

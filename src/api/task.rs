@@ -1,7 +1,7 @@
 use crate::database::DbClient;
-use crate::lib::{errors::Error, uuid, query};
+use crate::lib::{errors::Error, query, uuid};
 use crate::model::results::RowsAffected;
-use crate::model::task::{PublicTask, OptionalTask};
+use crate::model::task::{OptionalTask, PublicTask};
 use entity::task::Model as Task;
 
 use actix_web::web::Query;
@@ -25,7 +25,11 @@ pub fn attach_service(app: &mut actix_web::web::ServiceConfig) {
 
 #[post("/todo")]
 pub async fn create_task(db: Data<DbClient>, new_task: Json<Task>) -> HttpResponse {
-    let task_to_insert = Task::new(new_task.title.clone(), new_task.completed, new_task.deadline);
+    let task_to_insert = Task::new(
+        new_task.title.clone(),
+        new_task.completed,
+        new_task.deadline,
+    );
     let task = db.task_dao.create(task_to_insert).await;
 
     match task {
@@ -244,7 +248,7 @@ pub async fn get_task(db: Data<DbClient>, path: Path<TaskIdentifier>) -> HttpRes
                 Ok(task) => HttpResponse::Found().json(PublicTask::from(task)),
                 Err(Error::NotFound(err)) => {
                     HttpResponse::NotFound().body(format!("Not Found: {}", err))
-                },
+                }
                 Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
             }
         }
@@ -262,14 +266,13 @@ pub async fn update_task(
     match id {
         Err(err) => HttpResponse::BadRequest().body(err.to_string()),
         Ok(id) => {
-            let data = db.task_dao.find_id(id.clone()).await;
+            let data = db.task_dao.find_id(id).await;
 
             match data {
                 Err(err) => HttpResponse::NotFound().body(err.to_string()),
                 Ok(task) => {
-                    let mut new_data =
-                        Task::new(task.title.clone(), task.completed, task.deadline);
-        
+                    let mut new_data = Task::new(task.title.clone(), task.completed, task.deadline);
+
                     match new_task.task_title.clone() {
                         Some(title) => new_data.title = title,
                         None => (),
@@ -282,9 +285,9 @@ pub async fn update_task(
                         Some(deadline) => new_data.deadline = Option::from(deadline),
                         None => (),
                     }
-        
+
                     let task = db.task_dao.update_task(id, new_data).await;
-        
+
                     match task {
                         Ok(task) => HttpResponse::Ok().json(PublicTask::from(task)),
                         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),

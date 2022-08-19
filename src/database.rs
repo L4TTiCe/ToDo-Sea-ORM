@@ -53,17 +53,18 @@ impl DbClient {
         info!("Connecting to PorstgreSQL...");
 
         let mut options = ConnectOptions::new(uri.clone());
-        options.max_connections(100)
+        options
+            .max_connections(100)
             .min_connections(5)
             .connect_timeout(Duration::from_secs(8))
             .idle_timeout(Duration::from_secs(8))
             .max_lifetime(Duration::from_secs(8))
             .sqlx_logging(true)
             .sqlx_logging_level(log::LevelFilter::Info);
-                
+
         let db_connection: DatabaseConnection = Database::connect(options).await?;
 
-        let task_dao = TaskDao::init(db_connection.clone());
+        let task_dao = TaskDao::init(db_connection);
 
         Ok(DbClient { task_dao })
     }

@@ -1,4 +1,4 @@
-use crate::lib::{query, errors::Error};
+use crate::lib::{errors::Error, query};
 use entity::task;
 
 use sea_orm::ColumnTrait;
@@ -15,11 +15,17 @@ pub fn match_task_column(column_name: &str) -> Result<task::Column, Error> {
         "title" => Ok(task::Column::Title),
         "created_at" => Ok(task::Column::CreatedAt),
         "deadline" => Ok(task::Column::Deadline),
-        &_ => Err(Error::NotFound(format!("Column `{}` not found", column_name))),
+        &_ => Err(Error::NotFound(format!(
+            "Column `{}` not found",
+            column_name
+        ))),
     }
 }
 
-pub fn construct_filter<T>(col: task::Column, op: query::FilterOps, val: T) -> migration::SimpleExpr where sea_orm::Value: std::convert::From<T>{
+pub fn construct_filter<T>(col: task::Column, op: query::FilterOps, val: T) -> migration::SimpleExpr
+where
+    sea_orm::Value: std::convert::From<T>,
+{
     match op {
         query::FilterOps::Gte => col.gte(val),
         query::FilterOps::Lte => col.lte(val),
