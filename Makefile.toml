@@ -3,7 +3,7 @@ script = [
  "docker-compose up --build --remove-orphans --force-recreate"
 ]
 
-[tasks.mongo]
+[tasks.postgres]
 script = [
- "docker-compose --file docker-compose-mongo.yml up"
+ "docker-compose --file docker-compose-postgres.yml up"
 ]

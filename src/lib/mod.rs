@@ -1,4 +1,4 @@
 pub mod env;
-pub mod model;
-pub mod mongodb;
+pub mod errors;
 pub mod time;
+pub mod uuid;

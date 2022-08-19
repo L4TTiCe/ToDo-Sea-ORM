@@ -1,16 +1,15 @@
 mod api;
 mod dao;
 mod database;
-mod errors;
 mod lib;
 mod model;
 
-use crate::database::MongoDB;
+use crate::database::DbClient;
 
 use actix_cors::Cors;
 use actix_web::{get, middleware, App, HttpServer, Responder};
 use dotenv::dotenv;
-use errors::Error;
+use lib::errors::Error;
 
 #[macro_use]
 extern crate log;
@@ -37,7 +36,7 @@ async fn main() -> Result<(), Error> {
         .unwrap();
     info!("Listening on port {}", port);
 
-    let db = MongoDB::init().await?;
+    let db = DbClient::init().await?;
 
     let db_data = actix_web::web::Data::new(db);
 

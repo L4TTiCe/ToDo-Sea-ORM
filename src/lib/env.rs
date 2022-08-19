@@ -1,4 +1,4 @@
-use crate::errors::Error;
+use crate::lib::errors::Error;
 
 pub fn get_env_var(env_var_name: String) -> Result<String, Error> {
     std::env::var(&env_var_name).map_err(|_| {

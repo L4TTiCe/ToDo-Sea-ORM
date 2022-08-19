@@ -1,12 +1,13 @@
-use crate::dao::task::TaskCollection;
-use crate::errors::Error;
+use std::time::Duration;
+
+use crate::dao::task::TaskDao;
 use crate::lib::env::get_env_var;
+use crate::lib::errors::Error;
 
-use mongodb::{bson::doc, options::ClientOptions, Client, Database};
-use tokio::time::timeout;
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 
-pub struct MongoDB {
-    pub task_collection: TaskCollection,
+pub struct DbClient {
+    pub task_dao: TaskDao,
 }
 
 fn construct_db_uri() -> Result<String, Error> {
@@ -35,46 +36,35 @@ fn construct_db_uri() -> Result<String, Error> {
     uri.push_str(get_env_var(String::from("DB_PORT"))?.as_str());
     redacted_uri.push_str(get_env_var(String::from("DB_PORT"))?.as_str());
 
+    uri.push('/');
+    redacted_uri.push('/');
+
+    uri.push_str(get_env_var(String::from("POSTGRES_DB"))?.as_str());
+    redacted_uri.push_str(get_env_var(String::from("POSTGRES_DB"))?.as_str());
+
     info!("Constructed DB URI: {}", redacted_uri);
     Ok(uri)
 }
 
-async fn ping_db(client: Client) {
-    let timeout_duration = std::time::Duration::from_secs(5);
-
-    if (timeout(
-        timeout_duration,
-        client.database("admin").run_command(doc! {"ping": 1}, None),
-    )
-    .await)
-        .is_err()
-    {
-        warn!(
-            "Failed to recieve response fron Database wihin {} s",
-            timeout_duration.as_secs()
-        );
-    } else {
-        info!("Sucessfuly connected to MongoDB.");
-    }
-}
-
-impl MongoDB {
+impl DbClient {
     pub async fn init() -> Result<Self, Error> {
         let uri = construct_db_uri()?;
 
-        info!("Connecting to MongoDB...");
+        info!("Connecting to PorstgreSQL...");
 
-        let options = ClientOptions::parse(uri.as_str()).await?;
-        let client = Client::with_options(options)?;
-        let database_name = get_env_var(String::from("DB_DATABASE"))?;
+        let mut options = ConnectOptions::new(uri.clone());
+        options.max_connections(100)
+            .min_connections(5)
+            .connect_timeout(Duration::from_secs(8))
+            .idle_timeout(Duration::from_secs(8))
+            .max_lifetime(Duration::from_secs(8))
+            .sqlx_logging(true)
+            .sqlx_logging_level(log::LevelFilter::Info);
+                
+        let db_connection: DatabaseConnection = Database::connect(options).await?;
 
-        ping_db(client.clone()).await;
+        let task_dao = TaskDao::init(db_connection.clone());
 
-        let db: Database = client.database(database_name.as_str());
-
-        info!("Linking to Task Collection...");
-        let task_collection = TaskCollection::init(db, String::from("tasks"));
-
-        Ok(MongoDB { task_collection })
+        Ok(DbClient { task_dao })
     }
 }
