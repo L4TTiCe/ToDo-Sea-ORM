@@ -10,9 +10,6 @@ pub enum Error {
     #[error("Resource Not Found: {0}")]
     NotFound(String),
 
-    #[error("Resource not implemented")]
-    NotImplemented(),
-
     #[error("{0}")]
     ServerStartFailed(#[from] std::io::Error),
 
